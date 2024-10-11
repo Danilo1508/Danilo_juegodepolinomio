@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolyMath: El Desafío de los Polinomios</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #question, #score, #time, #level {
+            margin-bottom: 20px;
+        }
+        #leaderboard {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .achievement {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px;
+            background-color: #ddd;
+            border-radius: 5px;
+        }
+        #timer-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #ddd;
+            margin-bottom: 10px;
+        }
+        #timer-progress {
+            height: 100%;
+            width: 100%;
+            background-color: #4CAF50;
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>PolyMath: El Desafío de los Polinomios</h1>
+        <div id="level">Nivel: <span id="level-value">1</span></div>
+        <div id="score">Puntuación: <span id="score-value">0</span></div>
+        <div id="time">Tiempo: <span id="time-value">30</span>s</div>
+        <div id="timer-bar"><div id="timer-progress"></div></div>
+        <div id="question"></div>
+        <div id="options"></div>
+        <div id="achievements"></div>
+        <div id="leaderboard">
+            <h3>Tabla de Clasificación</h3>
+            <ol id="leaderboard-list"></ol>
+        </div>
+    </div>
+
+    <script>
+        const questionTypes = ['Monomio', 'Binomio', 'Trinomio', 'Polinomio'];
+        let score = 0;
+        let level = 1;
+        let timer;
+        let timeLeft = 30;
+        let leaderboard = [];
+        let achievements = {
+            'Principiante': {description: 'Completa tu primer juego', unlocked: false},
+            'Experto': {description: 'Alcanza el nivel 5', unlocked: false},
+            'Maestro': {description: 'Obtén una puntuación de 100', unlocked: false}
+        };
+
+        function generateQuestion() {
+            const type = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+            let expression = '';
+            const terms = type === 'Monomio' ? 1 : 
+                          type === 'Binomio' ? 2 :
+                          type === 'Trinomio' ? 3 :
+                          Math.floor(Math.random() * 3) + 4; // Polinomio (4-6 términos)
+
+            for (let i = 0; i < terms; i++) {
+                const coefficient = Math.floor(Math.random() * 10) + 1;
+                const variable = String.fromCharCode(97 + Math.floor(Math.random() * 3)); // a, b, o c
+                const exponent = Math.floor(Math.random() * 3) + 1;
+                expression += `${i > 0 ? ' + ' : ''}${coefficient}${variable}^${exponent}`;
+            }
+
+            return { type, expression };
+        }
+
+        function updateQuestion() {
+            const { type, expression } = generateQuestion();
+            document.getElementById('question').innerHTML = `¿Qué tipo de expresión es esta?<br>${expression}`;
+            
+            const options = questionTypes.sort(() => Math.random() - 0.5);
+            const optionsHtml = options.map(option => 
+                `<button onclick="checkAnswer('${option}', '${type}')">${option}</button>`
+            ).join('');
+            
+            document.getElementById('options').innerHTML = optionsHtml;
+        }
+
+        function checkAnswer(selected, correct) {
+            if (selected === correct) {
+                score += 10 * level;
+                alert(`¡Correcto! +${10 * level} puntos`);
+            } else {
+                alert(`Incorrecto. La respuesta correcta era ${correct}.`);
+            }
+            document.getElementById('score-value').textContent = score;
+            checkLevelUp();
+            checkAchievements();
+            updateLeaderboard();
+            updateQuestion();
+        }
+
+        function checkLevelUp() {
+            if (score >= level * 50) {
+                level++;
+                document.getElementById('level-value').textContent = level;
+                alert(`¡Has subido al nivel ${level}!`);
+                timeLeft = 30 + (level - 1) * 5; // Aumenta el tiempo con cada nivel
+                updateTimer();
+            }
+        }
+
+        function checkAchievements() {
+            if (!achievements['Principiante'].unlocked) {
+                achievements['Principiante'].unlocked = true;
+                showAchievement('Principiante');
+            }
+            if (!achievements['Experto'].unlocked && level >= 5) {
+                achievements['Experto'].unlocked = true;
+                showAchievement('Experto');
+            }
+            if (!achievements['Maestro'].unlocked && score >= 100) {
+                achievements['Maestro'].unlocked = true;
+                showAchievement('Maestro');
+            }
+        }
+
+        function showAchievement(name) {
+            const achievementElement = document.createElement('div');
+            achievementElement.className = 'achievement';
+            achievementElement.textContent = `${name}: ${achievements[name].description}`;
+            document.getElementById('achievements').appendChild(achievementElement);
+        }
+
+        function updateLeaderboard() {
+            leaderboard.push({name: 'Jugador', score: score});
+            leaderboard.sort((a, b) => b.score - a.score);
+            leaderboard = leaderboard.slice(0, 5); // Mantener solo los 5 mejores puntajes
+            const leaderboardHtml = leaderboard.map(entry => `<li>${entry.name}: ${entry.score}</li>`).join('');
+            document.getElementById('leaderboard-list').innerHTML = leaderboardHtml;
+        }
+
+        function updateTimer() {
+            document.getElementById('time-value').textContent = timeLeft;
+            const progressBar = document.getElementById('timer-progress');
+            progressBar.style.width = `${(timeLeft / (30 + (level - 1) * 5)) * 100}%`;
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                updateTimer();
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert(`¡Tiempo agotado! Tu puntuación final es ${score}`);
+                    resetGame();
+                }
+            }, 1000);
+        }
+
+        function resetGame() {
+            score = 0;
+            level = 1;
+            timeLeft = 30;
+            document.getElementById('score-value').textContent = score;
+            document.getElementById('level-value').textContent = level;
+            updateTimer();
+            updateQuestion();
+            startTimer();
+        }
+
+        updateQuestion();
+        startTimer();
+    </script>
+</body>
+</html>
